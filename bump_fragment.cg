@@ -1,0 +1,22 @@
+struct FragmentIn {  // input : vertex in texture coordinate
+	float2 texCoord0 : TEXCOORD0;
+};
+
+struct FragmentOut { // output : output color
+	float4 color : COLOR;
+};
+
+//float4 main(float4 color : COLOR)
+FragmentOut main(FragmentIn fIn, uniform sampler2D colorTex)
+{
+/*
+	float4 white = float4(1,1,1,1);
+	return float4(1,0,0,1);
+	return white - fOut.color;
+	return fOut;
+//*/
+
+	FragmentOut fOut;
+	fOut.color = tex2D(colorTex, fIn.texCoord0);
+	return fOut;
+}

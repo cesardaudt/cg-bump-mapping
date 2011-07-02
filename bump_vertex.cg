@@ -1,0 +1,34 @@
+struct VertexIn{  // input :  vertex we get it from OpenGL
+	float4 position   : POSITION;
+	float3 normal     : NORMAL;
+	float2 texCoord   : TEXCOORD0;
+};
+
+struct VertexOut   // Output: the modified input vertex 
+{
+	float4 position   : POSITION;
+	float2 texCoord   : TEXCOORD0;
+};
+
+
+VertexOut main(VertexIn vIn, uniform float4x4 modelViewProj,   
+                            uniform sampler2D bumpTex)
+{
+	VertexOut vOut;
+/*
+	// Get the displacement value from the texture then add it to the position.
+	float4 displace = tex2D(bumpTex, vIn.texCoord);
+	float4 displacedPos = (float4(vIn.normal * displace.x, 1)) + vIn.position;
+	// Tranform to clip space then set output color.
+	vOut.position = mul(modelViewProj, displacedPos);
+	vOut.texCoord = vIn.texCoord;
+//*/
+
+//*
+	// Identity:
+	vOut.position = mul(modelViewProj, vIn.position);
+	vOut.texCoord = vIn.texCoord;
+//*/
+
+	return vOut;
+}
