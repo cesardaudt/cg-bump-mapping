@@ -1,18 +1,26 @@
 struct VertexIn{  // input :  vertex we get it from OpenGL
-	float4 position   : POSITION;
-	float3 normal     : NORMAL;
-	float2 texCoord   : TEXCOORD0;
+	float4 position	: POSITION;
+//	float3 normal	: NORMAL;
+	float2 texCoord	: TEXCOORD0;
+	float2 tangent	: TEXCOORD1;
+	float2 binormal	: TEXCOORD2;
+	float2 normal	: TEXCOORD3;
 };
 
 struct VertexOut   // Output: the modified input vertex 
 {
-	float4 position   : POSITION;
-	float2 texCoord   : TEXCOORD0;
+	float4 position    : POSITION;
+	float2 texCoord    : TEXCOORD0;
+	float2 normal      : TEXCOORD1;
+	float3 lightVector : TEXCOORD2;
 };
 
 
-VertexOut main(VertexIn vIn, uniform float4x4 modelViewProj,   
-                            uniform sampler2D bumpTex)
+
+VertexOut main(VertexIn vIn, //uniform float4x4 modelViewProj,   
+                            //uniform sampler2D bumpTex
+		const uniform float4x4 modelViewProj,
+		const uniform float3 lightPosition)
 {
 	VertexOut vOut;
 /*
@@ -24,11 +32,26 @@ VertexOut main(VertexIn vIn, uniform float4x4 modelViewProj,
 	vOut.texCoord = vIn.texCoord;
 //*/
 
-//*
+/*
 	// Identity:
 	vOut.position = mul(modelViewProj, vIn.position);
 	vOut.texCoord = vIn.texCoord;
 //*/
+
+	// Calculate the light vector
+	vOut.lightVector = lightPosition - vIn.position.xyz;
+
+	// Transform the light vector from object space into tangent space
+	float3x3 TBNMatrix = float3x3(vIn.tangent, vIn.binormal, vIn.normal);
+	vOut.lightVector.xyz = mul(TBNMatrix, vOut.lightVector);
+	
+	// Transform the current vertex from object space to clip space, since OpenGL isn't doing it for us
+	// as long we're using a vertex shader
+	vOut.position = mul(modelViewProjMatrix, vIn.position);
+	
+	// Send the texture map coords and normal map coords to the fragment shader
+	vOut.texCoords = vIn.texCoords;
+	vOut.normal = vIn.texCoords;
 
 	return vOut;
 }
