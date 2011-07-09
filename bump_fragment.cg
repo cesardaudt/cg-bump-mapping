@@ -1,6 +1,6 @@
 struct FragmentIn {  // input : vertex in texture coordinate
 	float4 color     : COLOR0;
-	float2 texCoords : TEXCOORD0;
+	float2 texCoord  : TEXCOORD0;
 	float2 normal    : TEXCOORD1;
 	float3 lightVector : TEXCOORD2;
 };
@@ -25,6 +25,7 @@ FragmentOut main(FragmentIn fIn, uniform sampler2D colorTex : TEXUNIT0,
 	FragmentOut fOut;
 	fOut.color = tex2D(colorTex, fIn.texCoord0);
 //*/
+	FragmentOut fOut;
 
 	// We must remember to normalize the light vector as it's linearly interpolated across the surface,
 	// which in turn means the length of the vector will change as we interpolate
@@ -38,9 +39,10 @@ FragmentOut main(FragmentIn fIn, uniform sampler2D colorTex : TEXUNIT0,
 	// Calculate the diffuse component and store it as the final color in 'colorOUT'
 	// The diffuse component is defined as: I = Dl * Dm * clamp(L•N, 0, 1)
 	// saturate() works just like clamp() except that it implies a clamping between [0;1]
-	fOut.color.rgb = lightDiffuseColor * tex2D(colorTex, fIn.texCoords).rgb * saturate(dot(fIn.lightVector, vNormal));
+	fOut.color.rgb = lightDiffuseColor * tex2D(colorTex, fIn.texCoord).rgb * saturate(dot(fIn.lightVector, vNormal));
+//	fOut.color.rgb = lightDiffuseColor * tex2D(colorTex, fIn.texCoord).rgb * 0.5;
 
-	fOut.color = float4(1,0,0,1);
+//	fOut.color = float4(1,0,0,1);
 
 	return fOut;
 }
