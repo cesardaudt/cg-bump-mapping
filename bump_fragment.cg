@@ -40,6 +40,7 @@ FragmentOut main(FragmentIn fIn, uniform sampler2D colorTex : TEXUNIT0,
 	// The diffuse component is defined as: I = Dl * Dm * clamp(L•N, 0, 1)
 	// saturate() works just like clamp() except that it implies a clamping between [0;1]
 	fOut.color.rgb = lightDiffuseColor * tex2D(colorTex, fIn.texCoord).rgb * saturate(dot(fIn.lightVector, vNormal));
+//	fOut.color.rgb = tex2D(colorTex, fIn.normal);
 //	fOut.color.rgb = lightDiffuseColor * tex2D(colorTex, fIn.texCoord).rgb * 0.5;
 
 //	fOut.color = float4(1,0,0,1);

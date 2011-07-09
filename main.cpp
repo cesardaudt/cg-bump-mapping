@@ -43,6 +43,18 @@ GLuint loadTexture(const char* file)
 	return tex;
 }
 
+void enableTexture(const int texId) {
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+}
+
+void disableTexture() {
+	glDisable(GL_TEXTURE_2D);
+}
+
 void keyboardFunc(unsigned char key, int x, int y) {
 	switch(key) {
 		case 27: //ESC
@@ -162,27 +174,16 @@ void displayFunc() {
 	cgGLSetParameter3f(cgLightDiffuseColor, 1.0f, 1.0f, 1.0f);
 	//*/
 
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, colorTex);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-	//glMultiTexCoord3fARB(0,0,0,0);
-
 	Vector3f TBN[3];
 	Vector3f texCoords[3] = {Vector3f(0,0,1), Vector3f(0,1,1), Vector3f(1,0,1)};
 	Vector3f vertices[3] = {Vector3f(1,0,0), Vector3f(0,-1,0), Vector3f(-1,0,0)};
 
 	// Enable and bind the normal map
 	glActiveTextureARB(GL_TEXTURE0_ARB);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, colorTex);
+	enableTexture(colorTex);
 
 	glActiveTextureARB(GL_TEXTURE1_ARB);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, bumpTex); //colorTex bumpTex
+	enableTexture(bumpTex);
 
 	computeTBN(vertices, texCoords, TBN);
 
@@ -211,13 +212,12 @@ void displayFunc() {
 //		glVertex3f(-1,0,0);
 	glEnd();
 
-	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glActiveTextureARB(GL_TEXTURE0_ARB);
-	glDisable(GL_TEXTURE_2D);
+	disableTexture();
 
 	glActiveTextureARB(GL_TEXTURE1_ARB);
-	glDisable(GL_TEXTURE_2D);
+	disableTexture();
 
 	cgGLDisableTextureParameter(cgColorTex);
 	cgGLDisableTextureParameter(cgBumpTex);
