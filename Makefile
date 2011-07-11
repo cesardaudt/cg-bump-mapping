@@ -1,5 +1,5 @@
 CC = g++
-OBJ = vector3f.o
+OBJ = vector3f.o quaternion.o camera.o
 CFLAGS = -Wall
 LFLAGS = -lGL -lGLU -lglut -lCg -lCgGL -lSDL_image
 

@@ -5,6 +5,8 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include "vector3f.h"
+#include "camera.h"
+#include "quaternion.h"
 
 CGprogram cgFragmentShader;
 CGprogram cgVertexShader;
@@ -27,6 +29,7 @@ int width=800;
 int height=600;
 GLuint colorTex, bumpTex, heightTex;
 Vector3f lightPos(0,0,1);
+Camera camera(Vector3f(0,0,1), Vector3f(0,0,-1), Vector3f(0,1,0));
 bool useRelief=true;
 
 GLuint loadTexture(const char* file)
@@ -79,6 +82,25 @@ void keyboardFunc(unsigned char key, int x, int y) {
 			break;
 		case 'w':
 			lightPos.setY(lightPos.getY()+0.1);
+			break;
+		case 'z':
+			lightPos.setZ(lightPos.getZ()-0.1);
+			break;
+		case 'x':
+			lightPos.setZ(lightPos.getZ()+0.1);
+			break;
+
+		case 'i':
+			camera.translate(Vector3f(0,0.1,0), true, false);
+			break;
+		case 'k':
+			camera.translate(Vector3f(0,-0.1,0), true, false);
+			break;
+		case 'l':
+			camera.translate(Vector3f(0.1,0,0), true, false);
+			break;
+		case 'j':
+			camera.translate(Vector3f(-0.1,0,0), true, false);
 			break;
 	}
 }
@@ -188,7 +210,7 @@ void displayFunc() {
 
 	// Set the light position parameter in the vertex shader
 	cgGLSetParameter3f(cgLightPosition, lightPos.getX(), lightPos.getY(), lightPos.getZ());
-	cgGLSetParameter3f(cgViewerPosition, 0, 0, 1);
+	cgGLSetParameter3f(cgViewerPosition, camera.getPosition().getX(), camera.getPosition().getY(), camera.getPosition().getZ());
 
 	// Set the diffuse of the light in the fragment shader
 	cgGLSetParameter3f(cgLightDiffuseColor, 1.0f, 1.0f, 1.0f);
@@ -214,6 +236,7 @@ void displayFunc() {
 //	glMatrixMode(GL_MODELVIEW);
 //	glLoadIdentity();
 //	gluLookAt(0,0,1,  0,-.5,-1,  0,1,0);
+	camera.look();
 
 	glBegin(GL_TRIANGLE_FAN);
 //		glColor3f(1,0,0);
@@ -264,7 +287,7 @@ void displayFunc() {
 
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
-		glTranslatef(lightPos.getX(), lightPos.getY(), 1);
+		glTranslatef(lightPos.getX(), lightPos.getY(), lightPos.getZ());
 		glColor4f(1,1,1,1);
 		glutSolidSphere(0.025, 16, 16);
 	glPopMatrix();
@@ -354,6 +377,8 @@ void initGL() {
 	glutIdleFunc(idleFunc);
 	glutDisplayFunc(displayFunc);
 	glutKeyboardFunc(keyboardFunc);
+
+	camera.setPerspective(90, 800.0/600.0, 0.5, 1500.0);
 }
 
 int main(int argc, char* argv[]) {
