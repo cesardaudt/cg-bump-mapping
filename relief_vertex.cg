@@ -12,7 +12,8 @@ struct VertexOut   // Output: the modified input vertex
 	float4 position    : POSITION;
 	float2 texCoord    : TEXCOORD0;
 	float2 normalCoord : TEXCOORD1;
-	float3 lightVector : TEXCOORD2;
+//	float3 lightVector : TEXCOORD2;
+	float3 lightPos    : TEXCOORD2;
 	float3 viewVector  : TEXCOORD3;
 };
 
@@ -26,13 +27,15 @@ VertexOut main(VertexIn vIn, //uniform float4x4 modelViewProj,
 {
 	VertexOut vOut;
 
+//*
 	// Calculate the light vector
-	vOut.lightVector = lightPosition - vIn.position.xyz;
+//	vOut.lightVector = lightPosition - vIn.position.xyz;
+	vOut.lightPos = lightPosition;
 	vOut.viewVector = viewerPosition - vIn.position.xyz;
 
 	// Transform the light vector from object space into tangent space
 	float3x3 TBNMatrix = float3x3(vIn.tangent, vIn.binormal, vIn.normal);
-	vOut.lightVector.xyz = mul(TBNMatrix, vOut.lightVector);
+	vOut.lightPos.xyz = mul(TBNMatrix, vOut.lightPos);
 	vOut.viewVector.xyz = mul(TBNMatrix, vOut.viewVector);
 	
 	// Transform the current vertex from object space to clip space, since OpenGL isn't doing it for us
@@ -42,6 +45,7 @@ VertexOut main(VertexIn vIn, //uniform float4x4 modelViewProj,
 	// Send the texture map coords and normal map coords to the fragment shader
 	vOut.texCoord = vIn.texCoord;
 	vOut.normalCoord = vIn.texCoord;
+//*/
 
 	return vOut;
 }

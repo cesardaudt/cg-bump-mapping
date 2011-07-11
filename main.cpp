@@ -9,18 +9,25 @@
 CGprogram cgFragmentShader;
 CGprogram cgVertexShader;
 CGcontext cgContext;
+
 CGprofile cgFragmentProfile;
 CGprofile cgVertexProfile;
+
 CGparameter cgColorTex;
 CGparameter cgBumpTex;
+CGparameter cgHeightTex;
+
 CGparameter cgModelViewProj;
 CGparameter cgLightDiffuseColor;
 CGparameter cgLightPosition;
+CGparameter cgViewerPosition;
 
 int window;
 int width=800;
 int height=600;
-GLuint colorTex, bumpTex;
+GLuint colorTex, bumpTex, heightTex;
+Vector3f lightPos(0,0,1);
+bool useRelief=true;
 
 GLuint loadTexture(const char* file)
 {
@@ -60,6 +67,18 @@ void keyboardFunc(unsigned char key, int x, int y) {
 		case 27: //ESC
 		case 'q':
 			exit(0);
+			break;
+		case 'a':
+			lightPos.setX(lightPos.getX()-0.1);
+			break;
+		case 'd':
+			lightPos.setX(lightPos.getX()+0.1);
+			break;
+		case 's':
+			lightPos.setY(lightPos.getY()-0.1);
+			break;
+		case 'w':
+			lightPos.setY(lightPos.getY()+0.1);
 			break;
 	}
 }
@@ -168,15 +187,17 @@ void displayFunc() {
 	cgGLEnableTextureParameter(cgColorTex);
 
 	// Set the light position parameter in the vertex shader
-	cgGLSetParameter3f(cgLightPosition, 0, 0, 2);
+	cgGLSetParameter3f(cgLightPosition, lightPos.getX(), lightPos.getY(), lightPos.getZ());
+	cgGLSetParameter3f(cgViewerPosition, 0, 0, 1);
 
 	// Set the diffuse of the light in the fragment shader
 	cgGLSetParameter3f(cgLightDiffuseColor, 1.0f, 1.0f, 1.0f);
 	//*/
 
 	Vector3f TBN[3];
-	Vector3f texCoords[3] = {Vector3f(0,0,1), Vector3f(0,1,1), Vector3f(1,0,1)};
-	Vector3f vertices[3] = {Vector3f(1,0,0), Vector3f(0,-1,0), Vector3f(-1,0,0)};
+	Vector3f texCoords[] = {Vector3f(1,1,1), Vector3f(1,0,1), Vector3f(0,0,1), Vector3f(0,1,1)};
+//	Vector3f texCoords[] = {Vector3f(0,0,0), Vector3f(0,1,0), Vector3f(1,0,0)};
+	Vector3f vertices[] = {Vector3f(1,0,0), Vector3f(0,-1,0), Vector3f(-1,0,0), Vector3f(0,1,0)};
 
 	// Enable and bind the normal map
 	glActiveTextureARB(GL_TEXTURE0_ARB);
@@ -185,9 +206,16 @@ void displayFunc() {
 	glActiveTextureARB(GL_TEXTURE1_ARB);
 	enableTexture(bumpTex);
 
+	glActiveTextureARB(GL_TEXTURE2_ARB);
+	enableTexture(heightTex);
+
 	computeTBN(vertices, texCoords, TBN);
 
-	glBegin(GL_TRIANGLES);
+//	glMatrixMode(GL_MODELVIEW);
+//	glLoadIdentity();
+//	gluLookAt(0,0,1,  0,-.5,-1,  0,1,0);
+
+	glBegin(GL_TRIANGLE_FAN);
 //		glColor3f(1,0,0);
 //		glTexCoord2f(0,0);
 //		glVertex3f(1,0,0);
@@ -203,6 +231,14 @@ void displayFunc() {
 			glVertex3f(vertices[i].getX(), vertices[i].getY(), vertices[i].getZ());
 		}
 
+		glMultiTexCoord2fARB(GL_TEXTURE0_ARB, texCoords[3].getX(), texCoords[3].getY());
+
+		// Specify the tangent matrix vectors, one by one, for the first triangle and send them to the vertex shader
+		glMultiTexCoord3fARB(GL_TEXTURE1_ARB, TBN[0].getX(), TBN[0].getY(), TBN[0].getZ());
+		glMultiTexCoord3fARB(GL_TEXTURE2_ARB, TBN[1].getX(), TBN[1].getY(), TBN[1].getZ());
+		glMultiTexCoord3fARB(GL_TEXTURE3_ARB, TBN[2].getX(), TBN[2].getY(), TBN[2].getZ());
+		glVertex3f(vertices[3].getX(), vertices[3].getY(), vertices[3].getZ());
+
 //		glColor3f(0,1,0);
 //		glTexCoord2f(0,1);
 //		glVertex3f(0,-1,0);
@@ -212,17 +248,26 @@ void displayFunc() {
 //		glVertex3f(-1,0,0);
 	glEnd();
 
-
 	glActiveTextureARB(GL_TEXTURE0_ARB);
 	disableTexture();
 
 	glActiveTextureARB(GL_TEXTURE1_ARB);
 	disableTexture();
 
+	glActiveTextureARB(GL_TEXTURE2_ARB);
+	disableTexture();
+
 	cgGLDisableTextureParameter(cgColorTex);
 	cgGLDisableTextureParameter(cgBumpTex);
 	cgGLDisableProfile(cgVertexProfile);
 	cgGLDisableProfile(cgFragmentProfile);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glPushMatrix();
+		glTranslatef(lightPos.getX(), lightPos.getY(), 1);
+		glColor4f(1,1,1,1);
+		glutSolidSphere(0.025, 16, 16);
+	glPopMatrix();
 
 	glutSwapBuffers();
 	glutPostRedisplay();
@@ -253,19 +298,27 @@ bool initCG() {
 	cgGLSetOptimalOptions(cgFragmentProfile);
 	cgGLSetOptimalOptions(cgVertexProfile);
 	//errorCB
-	cgFragmentShader = cgCreateProgramFromFile(cgContext, CG_SOURCE, "bump_fragment.cg", cgFragmentProfile, NULL, NULL);
-	cgVertexShader = cgCreateProgramFromFile(cgContext, CG_SOURCE, "bump_vertex.cg", cgVertexProfile, NULL, NULL);
+	if(useRelief) {
+		cgFragmentShader = cgCreateProgramFromFile(cgContext, CG_SOURCE, "relief_fragment.cg", cgFragmentProfile, NULL, NULL);
+		cgVertexShader = cgCreateProgramFromFile(cgContext, CG_SOURCE, "relief_vertex.cg", cgVertexProfile, NULL, NULL);
+	}
+	else {
+		cgFragmentShader = cgCreateProgramFromFile(cgContext, CG_SOURCE, "bump_fragment.cg", cgFragmentProfile, NULL, NULL);
+		cgVertexShader = cgCreateProgramFromFile(cgContext, CG_SOURCE, "bump_vertex.cg", cgVertexProfile, NULL, NULL);
+	}
 	
 	if(!cgFragmentShader) return false;
 	if(!cgVertexShader) return false;
 
 	cgGLLoadProgram(cgVertexShader);
 	cgModelViewProj = cgGetNamedParameter(cgVertexShader, "modelViewProj");
-	cgBumpTex = cgGetNamedParameter(cgVertexShader, "bumpTex");
 	cgLightPosition = cgGetNamedParameter(cgVertexShader, "lightPosition");
+	cgViewerPosition = cgGetNamedParameter(cgVertexShader, "viewerPosition");
 
 	cgGLLoadProgram(cgFragmentShader);
 	cgColorTex = cgGetNamedParameter(cgFragmentShader, "colorTex");
+	cgBumpTex = cgGetNamedParameter(cgFragmentShader, "bumpTex");
+	cgHeightTex = cgGetNamedParameter(cgVertexShader, "heightTex");
 	cgLightDiffuseColor = cgGetNamedParameter(cgFragmentShader, "lightDiffuseColor");
 
 	return true;
@@ -304,12 +357,42 @@ void initGL() {
 }
 
 int main(int argc, char* argv[]) {
+	if(argc>1)
+		if(!strcmp(argv[1], "bump")) {
+			useRelief = false;
+		}
+
+	if(useRelief)
+		printf("relief mapping\n");
+	else
+		printf("bump mapping\n");
+
 	glutInit(&argc, argv);
 	initGL();
 	initCG();
 
+/*
 	colorTex = loadTexture("brick-c.jpg");
 	bumpTex = loadTexture("brick-n.jpg");
+	bumpTex = loadTexture("brick-h.jpg");
+//*/
+
+/*
+	colorTex = loadTexture("rockwall-c.jpg");
+	bumpTex = loadTexture("rockwall-n.jpg");
+	bumpTex = loadTexture("rockwall-h.jpg");
+//*/
+
+/*
+	colorTex = loadTexture("fieldstone-c.jpg");
+	bumpTex = loadTexture("fieldstone-n.jpg");
+//*/
+
+//*
+	colorTex = loadTexture("layingrock-c.jpg");
+	bumpTex = loadTexture("layingrock-n.jpg");
+	heightTex = loadTexture("layingrock-h.jpg");
+//*/
 
 	glutMainLoop();
 	return 0;
