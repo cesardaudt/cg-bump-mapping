@@ -19,6 +19,7 @@ CGparameter cgColorTex;
 CGparameter cgBumpTex;
 CGparameter cgHeightTex;
 
+CGparameter cgReliefDepth;
 CGparameter cgModelViewProj;
 CGparameter cgLightDiffuseColor;
 CGparameter cgLightPosition;
@@ -31,6 +32,7 @@ GLuint colorTex, bumpTex, heightTex;
 Vector3f lightPos(0,0,1);
 Camera camera(Vector3f(0,0,1), Vector3f(0,0,-1), Vector3f(0,1,0));
 bool useRelief=true;
+float reliefDepth=1;
 
 GLuint loadTexture(const char* file)
 {
@@ -66,6 +68,9 @@ void disableTexture() {
 }
 
 void keyboardFunc(unsigned char key, int x, int y) {
+	Vector3f camPos = camera.getPosition();
+	Vector3f tgt;
+	Quaternion q(Vector3f(0,1,0), 1);
 	switch(key) {
 		case 27: //ESC
 		case 'q':
@@ -90,6 +95,7 @@ void keyboardFunc(unsigned char key, int x, int y) {
 			lightPos.setZ(lightPos.getZ()+0.1);
 			break;
 
+//*
 		case 'i':
 			camera.translate(Vector3f(0,0.1,0), true, false);
 			break;
@@ -102,6 +108,42 @@ void keyboardFunc(unsigned char key, int x, int y) {
 		case 'j':
 			camera.translate(Vector3f(-0.1,0,0), true, false);
 			break;
+		case 'u':
+			camera.setPosition(camera.getPosition()*0.9);
+			break;
+		case 'o':
+			camera.setPosition(camera.getPosition()*1.1);
+			break;
+
+		case 'm':
+			reliefDepth += 0.1;
+			break;
+		case 'n':
+			reliefDepth -= 0.1;
+			break;
+//*/
+/*
+		case 'i':
+			tgt = camPos + camera.getLookAt();
+			q = Quaternion(Vector3f(1,0,0), 5);
+			camPos = q.rotate(camPos);
+			camera.setPosition(camPos);
+			camera.setTarget(camPos - tgt, camera.getUp());
+			break;
+		case 'k':
+			tgt = camPos + camera.getLookAt();
+			q = Quaternion(Vector3f(1,0,0), -5);
+			camPos = q.rotate(camPos);
+			camera.setPosition(camPos);
+			camera.setTarget(camPos - tgt, camera.getUp());
+			break;
+		case 'l':
+			camera.translate(Vector3f(0.1,0,0), true, false);
+			break;
+		case 'j':
+			camera.translate(Vector3f(-0.1,0,0), true, false);
+			break;
+//*/
 	}
 }
 
@@ -214,6 +256,7 @@ void displayFunc() {
 
 	// Set the diffuse of the light in the fragment shader
 	cgGLSetParameter3f(cgLightDiffuseColor, 1.0f, 1.0f, 1.0f);
+	cgGLSetParameter1f(cgReliefDepth, reliefDepth);
 	//*/
 
 	Vector3f TBN[3];
@@ -228,8 +271,10 @@ void displayFunc() {
 	glActiveTextureARB(GL_TEXTURE1_ARB);
 	enableTexture(bumpTex);
 
-	glActiveTextureARB(GL_TEXTURE2_ARB);
-	enableTexture(heightTex);
+	if(useRelief) {
+		glActiveTextureARB(GL_TEXTURE2_ARB);
+		enableTexture(heightTex);
+	}
 
 	computeTBN(vertices, texCoords, TBN);
 
@@ -277,8 +322,10 @@ void displayFunc() {
 	glActiveTextureARB(GL_TEXTURE1_ARB);
 	disableTexture();
 
-	glActiveTextureARB(GL_TEXTURE2_ARB);
-	disableTexture();
+	if(useRelief) {
+		glActiveTextureARB(GL_TEXTURE2_ARB);
+		disableTexture();
+	}
 
 	cgGLDisableTextureParameter(cgColorTex);
 	cgGLDisableTextureParameter(cgBumpTex);
@@ -343,6 +390,7 @@ bool initCG() {
 	cgBumpTex = cgGetNamedParameter(cgFragmentShader, "bumpTex");
 	cgHeightTex = cgGetNamedParameter(cgVertexShader, "heightTex");
 	cgLightDiffuseColor = cgGetNamedParameter(cgFragmentShader, "lightDiffuseColor");
+	cgReliefDepth = cgGetNamedParameter(cgFragmentShader, "depth");
 
 	return true;
 }
@@ -378,14 +426,21 @@ void initGL() {
 	glutDisplayFunc(displayFunc);
 	glutKeyboardFunc(keyboardFunc);
 
-	camera.setPerspective(90, 800.0/600.0, 0.5, 1500.0);
+	camera.setPerspective(90, 800.0/600.0, 0.1, 500.0);
 }
 
 int main(int argc, char* argv[]) {
+	char texStr[20];
 	if(argc>1)
 		if(!strcmp(argv[1], "bump")) {
 			useRelief = false;
 		}
+
+	if(argc>2)
+		strcpy(texStr, argv[2]);
+	else
+		strcpy(texStr, "layingrock");
+		
 
 	if(useRelief)
 		printf("relief mapping\n");
@@ -396,16 +451,27 @@ int main(int argc, char* argv[]) {
 	initGL();
 	initCG();
 
+	char texStrC[20], texStrN[20], texStrH[20];
+
+	sprintf(texStrC, "%s-c.jpg", texStr);
+	sprintf(texStrN, "%s-n.jpg", texStr);
+	sprintf(texStrH, "%s-h.jpg", texStr);
+
+	colorTex = loadTexture(texStrC);
+	bumpTex = loadTexture(texStrN);
+	if(useRelief)
+		heightTex = loadTexture(texStrH);
+
 /*
 	colorTex = loadTexture("brick-c.jpg");
 	bumpTex = loadTexture("brick-n.jpg");
-	bumpTex = loadTexture("brick-h.jpg");
+	heightTex = loadTexture("brick-h.jpg");
 //*/
 
 /*
 	colorTex = loadTexture("rockwall-c.jpg");
 	bumpTex = loadTexture("rockwall-n.jpg");
-	bumpTex = loadTexture("rockwall-h.jpg");
+	heightTex = loadTexture("rockwall-h.jpg");
 //*/
 
 /*
@@ -413,7 +479,7 @@ int main(int argc, char* argv[]) {
 	bumpTex = loadTexture("fieldstone-n.jpg");
 //*/
 
-//*
+/*
 	colorTex = loadTexture("layingrock-c.jpg");
 	bumpTex = loadTexture("layingrock-n.jpg");
 	heightTex = loadTexture("layingrock-h.jpg");

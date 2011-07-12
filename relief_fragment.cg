@@ -15,33 +15,40 @@ struct FragmentOut { // output : output color
 FragmentOut main(FragmentIn fIn, uniform sampler2D colorTex : TEXUNIT0, // Color map
 		uniform sampler2D bumpTex : TEXUNIT1,	// Normal map
 		uniform sampler2D heightTex : TEXUNIT2,	// Height map
-		uniform float3 lightDiffuseColor)
+		uniform float3 lightDiffuseColor,
+		uniform float depth)
 {
 	FragmentOut fOut;
 
 	int numSteps = 128;
-	float depth = 0.5;
+	//float depth = 5;
 	fIn.viewVector = normalize(fIn.viewVector);
-	float3 bottomCoord = float3(fIn.texCoord - depth*float2((fIn.viewVector.x/fIn.viewVector.z), (fIn.viewVector.y/fIn.viewVector.z)), depth);
+	float3 bottomCoord = float3(fIn.texCoord - float2((fIn.viewVector.x/fIn.viewVector.z), (fIn.viewVector.y/fIn.viewVector.z)), depth);
 	float3 ray = (bottomCoord - float3(fIn.texCoord, 0))/numSteps;
-	float3 rayPos;
-	rayPos.xy = fIn.texCoord;
-	rayPos.z = tex2D(heightTex, rayPos.xy).x;
+	float3 rayPos =  float3(fIn.texCoord, depth*tex2D(heightTex, fIn.texCoord.xy).x);
+//	float3 rayPos =  float3(fIn.texCoord, 0);
 
 //	int zzz = tex2D(heightTex, rayPos.xy).x;
 //	while(rayPos.z <  tex2D(heightTex, rayPos.xy).x) {
 	for(int i=0; i<numSteps; i++) {
-		if(tex2D(heightTex, rayPos.xy).x < rayPos.z)
+		if(depth*tex2D(heightTex, rayPos.xy).x < rayPos.z) {
 			rayPos += ray;
+			//break;
+		}
 	}
 
 	float3 lightRay = rayPos;
 	ray = (fIn.lightPos - rayPos)/numSteps;
+//	float3 lightRay = fIn.lightPos;
+//	ray = (rayPos - fIn.lightPos)/numSteps;
 	for(int i=0; i<numSteps; i++) {
-		if(tex2D(heightTex, lightRay.xy).x < lightRay.z)
+		if(depth*tex2D(heightTex, lightRay.xy).x < lightRay.z)
 			lightRay += ray;
 	}
 
+//	if(fabs(lightRay - rayPos) <= 0.1)
+	//if(false)
+//	{
 	// We must remember to normalize the light vector as it's linearly interpolated across the surface,
 	// which in turn means the length of the vector will change as we interpolate
 //	fIn.lightVector = normalize(fIn.lightVector - rayPos);
@@ -60,6 +67,9 @@ FragmentOut main(FragmentIn fIn, uniform sampler2D colorTex : TEXUNIT0, // Color
 //	fOut.color.rgb = lightDiffuseColor * tex2D(colorTex, fIn.texCoord).rgb * saturate(dot(fIn.lightVector, vNormal));
 //	fOut.color.rgb = lightDiffuseColor * tex2D(colorTex, rayPos.xy).rgb * saturate(dot(fIn.lightVector, vNormal));
 	fOut.color.rgb = lightDiffuseColor * tex2D(colorTex, rayPos.xy).rgb * saturate(dot(lightVector, vNormal));
+//	}
+//	else
+//		fOut.color.rgb = float3(0,0,0);
 
 	return fOut;
 }

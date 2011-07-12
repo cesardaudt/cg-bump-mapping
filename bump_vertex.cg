@@ -28,12 +28,10 @@ VertexOut main(VertexIn vIn, //uniform float4x4 modelViewProj,
 
 	// Calculate the light vector
 	vOut.lightVector = lightPosition - vIn.position.xyz;
-	vOut.viewVector = viewerPosition - vIn.position.xyz;
 
 	// Transform the light vector from object space into tangent space
 	float3x3 TBNMatrix = float3x3(vIn.tangent, vIn.binormal, vIn.normal);
 	vOut.lightVector.xyz = mul(TBNMatrix, vOut.lightVector);
-	vOut.viewVector.xyz = mul(TBNMatrix, vOut.viewVector);
 	
 	// Transform the current vertex from object space to clip space, since OpenGL isn't doing it for us
 	// as long we're using a vertex shader
